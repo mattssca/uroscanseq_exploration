@@ -4,8 +4,10 @@ library(bslib)
 library(DT)
 library(shinyWidgets)
 
-# Replace with your data loading method
-metadata <- metadata
+#load metadata
+load("uroscanseq_meta.Rdata")
+metadata = uroscanseq_meta
+
 
 # Define your color palette
 lund_colors <- c(
