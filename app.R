@@ -40,16 +40,16 @@ if ("subtype_7_class" %in% names(metadata)) {
 # Variable categories
 var_categories <- list(
   `Clinical Data` = c("clin_prog_tat1_event", "clin_prog_tat1_time", "clin_prog_pat_tat1_event", "clin_prog_pat_tat1_time", "clin_clinprog_fu_tat1_event", "clin_clinprog_fu_tat1_time", "bcg_any_event", "bcg_any_time", "bcg_adequate_event", "bcg_adequate_time", "gem_mmc_event", "gem_mmc_time", "time_to_primary_cystectomy", "progression_event", "time_to_progression", "primary_cystectomy_event_nmi", "all_cystectomy_event_nmi", "time_to_cystectomy_nmi", "recurrence_event", "time_to_recurrence", "primary_recurrence", "palliative", "pdd_turb_returb", "urine_cytology_pre_turb", "tnm", "primary_cystectomy", "neoadj_induction", "preop_chemo_type", "n_chemo_doses", "returb", "pad_returb_t_stage", "prostatic_urethra", "lvi", "t1_invasion_depth", "variant_histology", "bcg_instillations", "adjuvant_mmc", "only_palliative_treatment", "ypt", "ypn", "tma_grade_who16_as"),
-  `Cohorts` = c("cohort", "seq_batch", "cohort_group"),
+  `Cohorts` = c("sample_id", "cohort", "seq_batch", "cohort_group"),
   `Descriptive` = c("age", "eau_risk_category", "eau_score", "hospital_turb", "gender", "smoker", "death_other_cause", "death_bladder_cancer"),
   `EAU Factors` = c("eau_over70", "eau_tumor_status", "eau_n_tumors", "eau_tumor_diam", "eau_stage", "eau_cis", "eau_who73", "eau_var_hist", "eau_prostatic_urethra", "eau_lvi"),
-  `Molecular Signatures` = c("proliferation_score", "progression_score", "progression_risk", "mol_grade_2022_score", "mol_grade_2022", "mol_grade_1999_score", "mol_grade_1999", "stromal141_up", "immune141_up", "b_cells", "t_cells", "cd8_t_cells", "nk_cells", "t_cells", "neutrophils", "monocytic_lineage", "macrophages", "m2_macrophage", "myeloid_dc", "endothelial_cells", "fibroblasts", "smooth_muscle"),
+  `LundTax Signatures` = c("proliferation_score", "progression_score", "progression_risk", "mol_grade_2022_score", "mol_grade_2022", "mol_grade_1999_score", "mol_grade_1999", "stromal141_up", "immune141_up", "b_cells", "t_cells", "cd8_t_cells", "nk_cells", "t_cells", "neutrophils", "monocytic_lineage", "macrophages", "m2_macrophage", "myeloid_dc", "cytotoxicity_score", "endothelial_cells", "fibroblasts", "smooth_muscle"),
   `Pathology` = c("multi_hist"),
   `Sequencing Metrics` = c("dna_ngul", "rna_ngul", "rin"),
   `Sample Sets` = c("set_719", "set_676", "set_hq_572", "set_hq_572_index_uc_533", "set_lq_147", "set_lq_147_index_uc_129", "set_rna_tma", "set_eau_risk", "set_clin_prog_tat1", "set_clin_prog_ta", "set_clin_prog_t1", "set_clin_prog_pat_tat1", "set_clin_prog_pat_ta", "set_clin_prog_pat_t1", "set_clin_clinprog_fu_tat1", "set_clin_clinprog_fu_ta", "set_clin_clinprog_fu_t1", "set_bcg_any", "set_bcg_adequate", "set_gem_mmc"),
   `Subtype Predictions` = c("subtype_5_class", "subtype_7_class", "Uro_score", "UroA_score", "UroB_score", "UroC_score", "GU_score", "BaSq_score", "Mes_score", "ScNE_score"),
-  `Tumor Information` = c("stage", "node", "met", "grade", "n_tumors_cat", "tumor_size"),
-  `Quality Control` = c("qc_removal", "category", "category_group")
+  `Tumor Information` = c("stage_simp", "stage", "node", "met", "grade", "n_tumors_cat", "tumor_size"),
+  `Quality Control` = c("qc_evaluation", "sample_category", "category_group")
 )
 
 ui <- fluidPage(
