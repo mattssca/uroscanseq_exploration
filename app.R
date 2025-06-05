@@ -4,10 +4,13 @@ library(bslib)
 library(DT)
 library(shinyWidgets)
 
-#load metadata
+# Load metadata
 load("uroscanseq_meta.Rdata")
 metadata = uroscanseq_meta
 
+# Load expression data (should create expr_mat)
+load("expr_met_uroscanseq.Rdata")
+expr_mat = expr_mat_uroscanseq
 
 # Define your color palette
 lund_colors <- c(
@@ -77,7 +80,6 @@ ui <- fluidPage(
                    tags$div(id = "filter_ui_container")
                  ),
                  hr(),
-                 # Use var_categories for grouped variable selection
                  pickerInput("xvar", "X variable", choices = var_categories, selected = "subtype_5_class", 
                              options = list(`live-search` = TRUE)),
                  pickerInput("yvar", "Y variable (optional)", choices = c("None", var_categories), selected = "None", 
@@ -99,6 +101,12 @@ ui <- fluidPage(
                 ),
                 tabPanel("Table",
                          DT::dataTableOutput("table")
+                ),
+                tabPanel("Heatmap",
+                         fileInput("gene_file", "Upload gene list (txt, one gene per line)", accept = ".txt"),
+                         uiOutput("gene_select_ui"),
+                         actionButton("plot_heatmap", "Plot Heatmap"),
+                         plotlyOutput("heatmap_plot")
                 )
               )
     )
@@ -114,11 +122,11 @@ server <- function(input, output, session) {
     insertUI(
       selector = "#filter_ui_container",
       ui = tags$div(
-        id = id, # Unique id for the filter row
+        id = id,
         fluidRow(
           column(3, pickerInput(paste0(id, "_cat"), "Category", choices = names(var_categories), width = "100%")),
           column(5, uiOutput(paste0(id, "_var_ui"))),
-          column(4, uiOutput(paste0(id, "_val_ui"))), # wider column for slider
+          column(4, uiOutput(paste0(id, "_val_ui"))),
           column(2, actionBttn(paste0(id, "_remove"), "Remove", style = "simple", color = "danger", size = "sm"))
         )
       ),
@@ -128,7 +136,6 @@ server <- function(input, output, session) {
     filter_ids(c(filter_ids(), id))
   })
   
-  # Update variable choices based on category
   observe({
     lapply(filter_ids(), function(id) {
       output[[paste0(id, "_var_ui")]] <- renderUI({
@@ -140,7 +147,6 @@ server <- function(input, output, session) {
     })
   })
   
-  # Remove filter UI (now removes the entire filter row)
   observe({
     lapply(filter_ids(), function(id) {
       observeEvent(input[[paste0(id, "_remove")]], {
@@ -150,7 +156,6 @@ server <- function(input, output, session) {
     })
   })
   
-  # Dynamically generate value selectors for each filter
   observe({
     lapply(filter_ids(), function(id) {
       output[[paste0(id, "_val_ui")]] <- renderUI({
@@ -162,7 +167,7 @@ server <- function(input, output, session) {
           sliderInput(
             paste0(id, "_val"), "Range",
             min = rng[1], max = rng[2], value = rng, step = diff(rng)/100,
-            width = "100%" # Make slider wide
+            width = "100%"
           )
         } else {
           pickerInput(paste0(id, "_val"), "Value(s)", choices = unique(vals), multiple = TRUE, width = "100%",
@@ -172,7 +177,6 @@ server <- function(input, output, session) {
     })
   })
   
-  # Reactive filtered data
   data_filtered <- reactive({
     df <- metadata
     for (id in filter_ids()) {
@@ -200,7 +204,6 @@ server <- function(input, output, session) {
     y <- if (input$yvar != "None") input$yvar else NULL
     color <- if (input$color != "None") input$color else NULL
     
-    # Sorting logic for ranked plot
     if (input$sort_x && !is.null(x) && is.numeric(df[[x]])) {
       df <- df[order(df[[x]], decreasing = TRUE), , drop = FALSE]
       if (input$plot_type %in% c("bar", "box", "scatter")) {
@@ -208,7 +211,6 @@ server <- function(input, output, session) {
       }
     }
     
-    # Use custom colors for Predictions_5classes or Predictions_7classes
     color_map <- if (!is.null(color) && color %in% c("subtype_5_class", "subtype_7_class")) lund_colors else NULL
     
     if (input$plot_type == "hist") {
@@ -254,6 +256,80 @@ server <- function(input, output, session) {
       writeLines(as.character(data_filtered()$sample_id), file)
     }
   )
+  
+  # --- HEATMAP TAB LOGIC ---
+  # Read uploaded gene list if present
+  uploaded_genes <- reactive({
+    req(input$gene_file)
+    genes <- readLines(input$gene_file$datapath)
+    genes <- trimws(genes)
+    genes <- genes[genes != ""]
+    genes
+  })
+  
+  output$gene_select_ui <- renderUI({
+    req(expr_mat)
+    genes <- rownames(expr_mat)
+    # If a gene file is uploaded, preselect those genes (if present in expr_mat)
+    selected_genes <- head(genes, 10)
+    if (!is.null(input$gene_file)) {
+      up_genes <- uploaded_genes()
+      selected_genes <- up_genes[up_genes %in% genes]
+      if (length(selected_genes) == 0) selected_genes <- head(genes, 10)
+    }
+    selectizeInput("genes", "Select Genes for Heatmap", choices = genes, multiple = TRUE, selected = selected_genes)
+  })
+  
+  observeEvent(input$plot_heatmap, {
+    req(expr_mat, input$genes)
+    sample_ids <- data_filtered()$sample_id
+    valid_samples <- sample_ids[sample_ids %in% colnames(expr_mat)]
+    if (length(valid_samples) == 0) {
+      output$heatmap_plot <- renderPlotly({ plotly_empty() })
+      return()
+    }
+    ann <- data_filtered()
+    ann <- ann[ann$sample_id %in% valid_samples, ]
+    ann <- ann[order(ann$subtype_5_class), ]
+    sorted_samples <- ann$sample_id
+    mat <- expr_mat[input$genes, sorted_samples, drop = FALSE]
+    # Annotation colors
+    subtype_levels <- levels(metadata$subtype_5_class)
+    subtype_colors <- lund_colors[subtype_levels]
+    # Annotation track
+    annotation_track <- plot_ly(
+      z = matrix(as.numeric(factor(ann$subtype_5_class, levels = subtype_levels)), nrow = 1),
+      x = sorted_samples,
+      y = "Subtype",
+      type = "heatmap",
+      showscale = FALSE,
+      colors = subtype_colors,
+      hoverinfo = "text",
+      text = paste("Subtype:", ann$subtype_5_class)
+    )
+    # Main heatmap
+    heatmap_main <- plot_ly(
+      z = as.matrix(mat),
+      x = colnames(mat),
+      y = rownames(mat),
+      type = "heatmap",
+      colorscale = "Viridis"
+    )
+    output$heatmap_plot <- renderPlotly({
+      subplot(
+        annotation_track,
+        heatmap_main,
+        nrows = 2,
+        heights = c(0.08, 0.92),
+        shareX = TRUE,
+        titleY = TRUE
+      ) %>% layout(
+        margin = list(t = 40),
+        yaxis = list(title = "", ticks = "", showticklabels = FALSE),
+        yaxis2 = list(title = "Genes")
+      )
+    })
+  })
 }
 
 shinyApp(ui, server)
